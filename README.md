@@ -89,6 +89,16 @@ code-carousel/
 
 The engine files are reused unchanged across decks; only `slides.js` differs.
 
+## Quality gates
+
+```bash
+npm run eval      # deterministic: every family×role renders, inference mapping, constraints
+npm run bench     # engine size vs budget (JS<80KB, CSS<15KB gzip) + render timing
+npm run tokens    # token footprint: ~5k read (operate) vs ~25k copy-only (engine)
+npm run eval:judge  # optional LLM-as-judge (needs ANTHROPIC_API_KEY)
+npm run check     # eval + bench + tokens
+```
+
 ## License
 
 [MIT](LICENSE)

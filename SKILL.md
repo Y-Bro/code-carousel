@@ -73,6 +73,10 @@ custom-style handling, and how to add a new family or theme. Runnable examples i
 - No framework / bundler / npm dependency. Each file < 800 lines.
 - **Never invent people's names, quotes, or facts** not present in the inputs.
 - `code-ide` + `vscode-dark` must keep rendering legacy decks identically — don't break it.
+- **Token hygiene:** COPY the engine files (`app.js`, `themes.js`, `families.js`, `styles.css`,
+  `families.css`, `index.html`) verbatim — do **not** read them into context. You only ever
+  read/author `slides.js` (+ `slides.example.js`/`reference.md` for the schema). Run
+  `npm run tokens` to see the read-vs-copy footprint.
 - Do not publish, share, or push the deck.
 
 ## Common Mistakes
