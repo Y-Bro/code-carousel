@@ -31,19 +31,35 @@ Claude Code auto-discovers it. Then just ask:
 
 > "Make a code-carousel farewell deck from this content file."
 
-## Use it directly (without the skill)
+## Usage
 
-1. Copy `templates/index.html`, `templates/styles.css`, and `templates/app.js` into a new folder.
-2. Replace `{{DECK_TITLE}}` / `{{DECK_DESCRIPTION}}` in `index.html`.
-3. Copy `templates/slides.example.js` to `slides.js` and fill in your `SLIDES` array.
-4. Verify: `node scripts/verify.mjs slides.js`
-5. Open `index.html`.
+See **[USAGE.md](USAGE.md)** for the full guide — the skill workflow, a by-hand walkthrough,
+the slide-type cheat sheet, adding photos, and verification.
+
+### Quick start by hand
+
+```bash
+REPO=~/.claude/skills/code-carousel    # or wherever you cloned this repo
+mkdir my-deck && cd my-deck
+cp "$REPO"/templates/{index.html,styles.css,app.js} .
+cp "$REPO"/examples/hello-world.slides.js slides.js
+open index.html                        # xdg-open on Linux / start on Windows
+```
+
+That runs a complete 4-slide sample deck. Then edit only `slides.js` (the `SLIDES` array),
+replace `{{DECK_TITLE}}` / `{{DECK_DESCRIPTION}}` in `index.html`, and verify with
+`node "$REPO/scripts/verify.mjs" slides.js` (you want `RESULT: PASS`).
+
+A complete, runnable, image-free deck lives in
+[`examples/hello-world.slides.js`](examples/hello-world.slides.js).
 
 ## Layout
 
 ```
 code-carousel/
   SKILL.md                  # the skill definition Claude Code reads
+  USAGE.md                   # step-by-step usage guide
+  examples/                  # runnable sample deck (hello-world.slides.js)
   references/reference.md    # full input/output contract + customization notes
   scripts/verify.mjs         # deck self-test (JS syntax + image mapping)
   templates/
