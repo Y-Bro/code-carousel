@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{DECK_TITLE}} — a code carousel</title>
+  <meta name="description" content="{{DECK_DESCRIPTION}}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Far-left VS Code activity bar (decorative) -->
+    <aside id="activitybar" aria-hidden="true">
+      <div class="ab-group">
+        <span class="ab-icon active" title="Explorer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5h7l2 2h9v12H3z"/></svg>
+        </span>
+        <span class="ab-icon" title="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></svg>
+        </span>
+        <span class="ab-icon" title="Source Control">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><circle cx="18" cy="9" r="2.4"/><path d="M6 8.4v7.2M8.2 7.2c5 0 7.8 0 7.8 0M16 11.4c0 3-2.2 4.6-7.6 4.6"/></svg>
+        </span>
+        <span class="ab-icon" title="Run">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 5l11 7-11 7z"/></svg>
+        </span>
+        <span class="ab-icon" title="Gopher">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="10" r="3"/><circle cx="15" cy="10" r="3"/><circle cx="9" cy="10" r="1"/><circle cx="15" cy="10" r="1"/></svg>
+        </span>
+      </div>
+    </aside>
+
+    <!-- Slide stage -->
+    <main id="stage" tabindex="0" aria-label="Farewell presentation">
+      <div id="track"></div>
+      <div id="floaters" aria-hidden="true"></div>
+    </main>
+
+    <!-- Commit / terminal transition overlay -->
+    <div id="transition" class="hidden" aria-hidden="true">
+      <div class="term-window">
+        <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">zsh — code-carousel</span></div>
+        <pre id="transition-body" class="term-body"></pre>
+      </div>
+    </div>
+
+    <!-- VS Code status bar -->
+    <footer id="statusbar">
+      <div class="sb-left">
+        <span class="sb-item accent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="13" height="13"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="9" r="2"/><path d="M6 8v8M8 6h4M18 11c0 3-2 4-6 4"/></svg>
+          main
+        </span>
+        <span class="sb-item" id="sb-commit">main · 0000000</span>
+      </div>
+      <div class="sb-center" id="sb-file">carousel.go</div>
+      <div class="sb-right">
+        <span class="sb-item" id="sb-pos">Ln 1, Col 1</span>
+        <span class="sb-item">UTF-8</span>
+        <span class="sb-item">LF</span>
+        <span class="sb-item go-badge">Go</span>
+        <span class="sb-item" id="sb-count">1 / 9</span>
+      </div>
+    </footer>
+
+    <!-- Progress dots -->
+    <nav id="dots" aria-label="Slide navigation"></nav>
+
+    <!-- Hint -->
+    <div id="hint" aria-hidden="true">
+      <kbd>←</kbd><kbd>→</kbd> navigate · <kbd>F</kbd> fullscreen
+    </div>
+  </div>
+
+  <script src="slides.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
