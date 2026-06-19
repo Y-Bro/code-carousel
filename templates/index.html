@@ -7,12 +7,13 @@
   <meta name="description" content="{{DECK_DESCRIPTION}}" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@400;600;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="families.css" />
 </head>
 <body>
   <div id="app">
-    <!-- Far-left VS Code activity bar (decorative) -->
+    <!-- Far-left VS Code activity bar (code-ide family only; hidden for others) -->
     <aside id="activitybar" aria-hidden="true">
       <div class="ab-group">
         <span class="ab-icon active" title="Explorer">
@@ -34,12 +35,12 @@
     </aside>
 
     <!-- Slide stage -->
-    <main id="stage" tabindex="0" aria-label="Farewell presentation">
+    <main id="stage" tabindex="0" aria-label="Carousel presentation">
       <div id="track"></div>
       <div id="floaters" aria-hidden="true"></div>
     </main>
 
-    <!-- Commit / terminal transition overlay -->
+    <!-- Commit / terminal transition overlay (code-ide family) -->
     <div id="transition" class="hidden" aria-hidden="true">
       <div class="term-window">
         <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">zsh — code-carousel</span></div>
@@ -47,7 +48,7 @@
       </div>
     </div>
 
-    <!-- VS Code status bar -->
+    <!-- VS Code status bar (code-ide family only; hidden for others) -->
     <footer id="statusbar">
       <div class="sb-left">
         <span class="sb-item accent">
@@ -56,13 +57,13 @@
         </span>
         <span class="sb-item" id="sb-commit">main · 0000000</span>
       </div>
-      <div class="sb-center" id="sb-file">carousel.go</div>
+      <div class="sb-center" id="sb-file">cover</div>
       <div class="sb-right">
         <span class="sb-item" id="sb-pos">Ln 1, Col 1</span>
         <span class="sb-item">UTF-8</span>
         <span class="sb-item">LF</span>
         <span class="sb-item go-badge">Go</span>
-        <span class="sb-item" id="sb-count">1 / 9</span>
+        <span class="sb-item" id="sb-count">1 / 1</span>
       </div>
     </footer>
 
@@ -75,6 +76,9 @@
     </div>
   </div>
 
+  <!-- load order matters: token + family registries + data, then the engine -->
+  <script src="themes.js"></script>
+  <script src="families.js"></script>
   <script src="slides.js"></script>
   <script src="app.js"></script>
 </body>

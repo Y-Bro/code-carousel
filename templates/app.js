@@ -1,9 +1,10 @@
 /* ============================================================
-   Code Carousel — carousel engine (v2)
-   - minimal Go syntax highlighter
-   - mood-based gopher SVG factory + Gopher mascot
-   - contributor chips, section badges, git-history transitions
-   - card renderers: code | social | origin | achievements | finale
+   Code Carousel — engine (v3, themable + multi-family)
+   - resolves STYLE { family, theme, brief, tokens } and applies theme tokens
+   - dispatches each slide by its semantic ROLE to the active style family
+   - code-ide family renderers are preserved verbatim (legacy decks render
+     identically); other families live in families.js, generic fallbacks too
+   - minimal Go syntax highlighter + gopher SVG factory (code-ide helpers)
    ============================================================ */
 
 (() => {
@@ -22,7 +23,16 @@
 
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ---------- Go syntax highlighter ---------- */
+  /* ---------- Style / theme resolution ---------- */
+  const cfg = (typeof STYLE !== "undefined" && STYLE) ? STYLE : {};
+  const familyId = cfg.family || "code-ide";
+  const fam = (typeof FAMILIES !== "undefined" && FAMILIES[familyId]) ? FAMILIES[familyId] : null;
+  const famDefaultTheme = fam ? fam.theme : "vscode-dark";
+  applyTheme(resolveTheme(cfg, famDefaultTheme));
+  const deckSlug = cfg.slug || cfg.deck || "code-carousel";
+  document.body.className = `fam-${familyId}`;
+
+  /* ---------- Go syntax highlighter (code-ide) ---------- */
   const KEYWORDS = new Set([
     "package", "import", "func", "type", "struct", "interface",
     "var", "const", "return", "go", "chan", "map", "defer", "select",
@@ -31,7 +41,7 @@
   const CONTROL = new Set(["if", "else", "for", "range", "switch", "case", "break", "continue", "panic"]);
 
   function esc(s) {
-    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
   function highlight(line) {
@@ -56,7 +66,7 @@
     });
   }
 
-  /* ---------- Gopher SVG (mood-aware, hand-drawn) ---------- */
+  /* ---------- Gopher SVG (mood-aware) ---------- */
   function gopherBody() {
     return `
   <ellipse cx="60" cy="132" rx="34" ry="6" fill="rgba(0,0,0,0.25)"/>
@@ -113,7 +123,7 @@
       case "coffee":
         return `<g transform="translate(93 92)"><rect x="-9" y="-7" width="16" height="14" rx="2" fill="#fff" stroke="#a9763f" stroke-width="1.5"/><path d="M-9 -3 h16 v8 a3 3 0 0 1 -3 3 h-10 a3 3 0 0 1 -3 -3 z" fill="#6f4a2a"/><path d="M7 -4 a5 5 0 0 1 0 8" fill="none" stroke="#a9763f" stroke-width="1.5"/><path d="M-3 -12 q3 -3 0 -6 M2 -12 q3 -3 0 -6" stroke="#d8c4b0" stroke-width="1.4" fill="none"/></g>`;
       case "locked":
-        return `<g transform="translate(60 92)"><rect x="-16" y="-10" width="32" height="24" rx="2" fill="#3b2f6b"/><rect x="-16" y="-10" width="32" height="24" rx="2" fill="none" stroke="#6c5bb0" stroke-width="1.5"/><text x="0" y="5" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#cfc4ff">తె</text><g transform="translate(12 -12)"><rect x="-5" y="0" width="10" height="8" rx="1.5" fill="#f4c430"/><path d="M-3 0 v-3 a3 3 0 0 1 6 0 v3" fill="none" stroke="#f4c430" stroke-width="1.6"/></g></g>`;
+        return `<g transform="translate(60 92)"><rect x="-16" y="-10" width="32" height="24" rx="2" fill="#3b2f6b"/><rect x="-16" y="-10" width="32" height="24" rx="2" fill="none" stroke="#6c5bb0" stroke-width="1.5"/><text x="0" y="5" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#cfc4ff">&bull;&bull;&bull;</text><g transform="translate(12 -12)"><rect x="-5" y="0" width="10" height="8" rx="1.5" fill="#f4c430"/><path d="M-3 0 v-3 a3 3 0 0 1 6 0 v3" fill="none" stroke="#f4c430" stroke-width="1.6"/></g></g>`;
       case "photo":
         return `<g transform="translate(92 94) rotate(-8)"><rect x="-12" y="-12" width="24" height="28" rx="1.5" fill="#fff" stroke="#d8cfc0" stroke-width="1.2"/><rect x="-9" y="-9" width="18" height="15" fill="#9ed0dc"/><circle cx="0" cy="-2" r="4" fill="#f4c430"/></g>`;
       case "mascot":
@@ -131,7 +141,6 @@
   ${gopherBody()}${gopherLimbs()}${gopherFace(mood)}${gopherProp(mood)}
 </svg>`;
   }
-
   function stickerEl(slide) {
     const s = slide.sticker;
     if (!s) return "";
@@ -139,10 +148,10 @@
     return `<div class="sticker">${gopher(slide.mood)}${cap}</div>`;
   }
 
-  /* ---------- Contributor chips (GitHub style) ---------- */
+  /* ---------- Contributor chips ---------- */
   const CHIP_TONES = ["#00add8", "#c586c0", "#dcdcaa", "#5dd47a", "#ff8a8a", "#7a8cff", "#f4a13d"];
   function initials(name) {
-    const parts = name.trim().split(/\s+/);
+    const parts = String(name).trim().split(/\s+/);
     if (/anonymous/i.test(name)) return "?";
     return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
   }
@@ -156,17 +165,15 @@
     return `<div class="contrib-bar"><span class="contrib-label">// contributed by:</span>${chips}</div>`;
   }
 
-  /* ---------- Line-numbered code block ---------- */
+  /* ---------- code-ide building blocks ---------- */
   function codeBlock(rows, startLine) {
-    let gutter = "";
-    let code = "";
+    let gutter = "", code = "";
     rows.forEach((r, i) => {
       gutter += `<span>${(startLine || 1) + i}</span>`;
       code += `<span class="ln" style="--i:${i}">${r || "&nbsp;"}</span>`;
     });
     return `<div class="editor-body"><div class="gutter">${gutter}</div><div class="code">${code}</div></div>`;
   }
-
   function mascotConsole(slide) {
     if (!slide.mascot || !slide.mascot.length) return "";
     const lines = slide.mascot.map((l) => `<span class="m-line">${esc(l)}</span>`).join("");
@@ -176,7 +183,6 @@
         <div class="m-out"><span class="m-tag">Gopher &gt;</span>${lines}</div>
       </div>`;
   }
-
   function sectionBadge(slide) {
     if (!slide.section) return "";
     return `<span class="section-badge"><span class="se">${slide.section.emoji}</span>${esc(slide.section.label)}</span>`;
@@ -185,14 +191,13 @@
     if (slide.author) return [`<span class="t-comment">// file: ${esc(slide.file)}</span>`, `<span class="t-comment author">// author: ${esc(slide.author)}</span>`];
     return [`<span class="t-comment">// file: ${esc(slide.file)}</span>`];
   }
-
   function editorChrome(slide, bodyHtml, opts) {
     opts = opts || {};
     return `
       <div class="editor ${opts.cls || ""}">
         <div class="titlebar">
           <span class="lights"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
-          <span class="crumb">code-carousel › <b>${esc(slide.file)}</b></span>
+          <span class="crumb">${esc(deckSlug)} › <b>${esc(slide.file)}</b></span>
         </div>
         <div class="tabbar">
           <span class="tab active"><span class="modi"></span><span class="go-file">${esc(slide.file)}</span></span>
@@ -203,37 +208,34 @@
       </div>`;
   }
 
-  /* ---------- Render a standard code slide ---------- */
+  /* ---------- code-ide renderers (preserved) ---------- */
   function renderSlide(slide) {
     const rows = [];
     const push = (h) => rows.push(h);
-
     headerComments(slide).forEach(push);
     push("");
     (slide.top || []).forEach((l) => push(highlight(l)));
     push("");
-
     const leads = slide.lead || [], msgs = slide.msg || [];
-    if (leads.length || msgs.length) {
+    const leadArr = Array.isArray(leads) ? leads : [leads];
+    const msgArr = Array.isArray(msgs) ? msgs : [msgs];
+    if (leadArr.length || msgArr.length) {
       push(`<span class="divider">// ────────────────────────────────</span>`);
-      leads.forEach((l) => push(`<span class="msg-line lead">// ${esc(l)}</span>`));
-      msgs.forEach((l) => push(`<span class="msg-line">// ${esc(l)}</span>`));
+      leadArr.forEach((l) => push(`<span class="msg-line lead">// ${esc(l)}</span>`));
+      msgArr.forEach((l) => push(`<span class="msg-line">// ${esc(l)}</span>`));
       push(`<span class="divider">// ────────────────────────────────</span>`);
       push("");
     }
     (slide.bottom || []).forEach((l) => push(highlight(l)));
     if (slide.easter) { push(""); push(`<span class="easter">${esc(slide.easter)}</span>`); }
     if (slide.footer) { push(""); slide.footer.forEach((l) => push(`<span class="footer-line">${esc(l)}</span>`)); }
-
     const el = document.createElement("section");
     el.className = "slide";
     el.innerHTML = editorChrome(slide, codeBlock(rows) + mascotConsole(slide)) + stickerEl(slide);
     return el;
   }
-
-  /* ---------- Render the cover ---------- */
   function renderCover(slide) {
-    const code = slide.code.map(highlight).map((l, i) => `<div class="ln" style="--i:${i}">${l || "&nbsp;"}</div>`).join("");
+    const code = (slide.code || []).map(highlight).map((l, i) => `<div class="ln" style="--i:${i}">${l || "&nbsp;"}</div>`).join("");
     const el = document.createElement("section");
     el.className = "slide";
     el.innerHTML = `
@@ -242,16 +244,14 @@
         <h1>${esc(slide.title)}<span class="ext">${esc(slide.ext)}</span></h1>
         <div class="runbox">${code}</div>
         <div class="sub">${esc(slide.sub)}</div>
-        <div class="runhint">press <kbd>→</kbd> to <span style="color:var(--go-cyan)">go run</span> the farewell · authored by ${esc(slide.author)}</div>
+        <div class="runhint">press <kbd>→</kbd> to <span style="color:var(--go-cyan)">go run</span> the deck${slide.author ? " · authored by " + esc(slide.author) : ""}</div>
       </div>
       <div class="sticker cover-l">${gopher("detective")}</div>
       <div class="sticker cover-r">${gopher("mascot")}</div>`;
     return el;
   }
-
-  /* ---------- Render social (warm coffee) slide ---------- */
   function renderSocial(slide) {
-    const mem = slide.memories.map((m, i) =>
+    const mem = (slide.memories || []).map((m, i) =>
       `<li style="--i:${i}"><span class="m-k">${esc(m.k)}</span><span class="m-v">${esc(m.v)}</span></li>`).join("");
     const el = document.createElement("section");
     el.className = "slide";
@@ -259,7 +259,7 @@
       <div class="warm-card social-card">
         <div class="warm-bar">
           <span class="warm-file">${esc(slide.file)}</span>
-          <span class="warm-tag">${slide.section.emoji} ${esc(slide.section.label)}</span>
+          ${slide.section ? `<span class="warm-tag">${slide.section.emoji} ${esc(slide.section.label)}</span>` : ""}
         </div>
         ${contributorBar(slide)}
         <div class="warm-body">
@@ -267,44 +267,40 @@
           <p class="warm-intro">${esc(slide.intro)}</p>
           <ul class="memory-list">${mem}</ul>
           <p class="warm-closing">${esc(slide.closing)}</p>
-          <p class="warm-footer">${slide.footer.map(esc).join("<br>")}</p>
+          <p class="warm-footer">${(slide.footer || []).map(esc).join("<br>")}</p>
         </div>
         <span class="stain s1"></span><span class="stain s2"></span>
       </div>
       ${stickerEl(slide)}`;
     return el;
   }
-
-  /* ---------- Render origin (polaroid) slide ---------- */
   function renderOrigin(slide) {
-    const beats = slide.beats.map((b, i) =>
+    const beats = (slide.beats || []).map((b, i) =>
       `<li style="--i:${i}"><span class="beat-dot"></span>${esc(b)}</li>`).join("");
-    const code = slide.struct.map(highlight).join("\n");
+    const code = (slide.struct || []).map(highlight).join("\n");
     const el = document.createElement("section");
     el.className = "slide";
     el.innerHTML = `
       <div class="warm-card origin-card">
         <div class="warm-bar paper">
           <span class="warm-file">${esc(slide.file)}</span>
-          <span class="warm-tag">${slide.section.emoji} ${esc(slide.section.label)} · author: ${esc(slide.author)}</span>
+          ${slide.section ? `<span class="warm-tag">${slide.section.emoji} ${esc(slide.section.label)}${slide.author ? " · author: " + esc(slide.author) : ""}</span>` : ""}
         </div>
         ${contributorBar(slide)}
         <div class="origin-grid">
-          <div class="polaroid"><div class="photo">${gopher("photo")}</div><span class="cap">Bangalore, day one</span></div>
+          <div class="polaroid"><div class="photo">${gopher("photo")}</div><span class="cap">${esc(slide.photoCap || "day one")}</span></div>
           <div class="origin-body">
             <p class="warm-header note">${esc(slide.header)}</p>
             <p class="warm-intro">${esc(slide.intro)}</p>
             <ul class="beats">${beats}</ul>
-            <pre class="mini-code">${code}</pre>
-            <p class="warm-footer">${slide.footer.map(esc).join("<br>")}</p>
+            ${code ? `<pre class="mini-code">${code}</pre>` : ""}
+            <p class="warm-footer">${(slide.footer || []).map(esc).join("<br>")}</p>
           </div>
         </div>
       </div>
       ${stickerEl(slide)}`;
     return el;
   }
-
-  /* ---------- Render achievements (badges) slide ---------- */
   function emblem(kind) {
     switch (kind) {
       case "go":  return `<text x="32" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="22" font-weight="700" fill="#fff">Go</text>`;
@@ -315,9 +311,9 @@
     }
   }
   function renderAchievements(slide) {
-    const code = slide.code.map(highlight).map((l, i) => `<span class="ln" style="--i:${i}">${l || "&nbsp;"}</span>`).join("");
-    const gutter = slide.code.map((_, i) => `<span>${i + 1}</span>`).join("");
-    const badges = slide.badges.map((b, i) => `
+    const code = (slide.code || []).map(highlight).map((l, i) => `<span class="ln" style="--i:${i}">${l || "&nbsp;"}</span>`).join("");
+    const gutter = (slide.code || []).map((_, i) => `<span>${i + 1}</span>`).join("");
+    const badges = (slide.badges || []).map((b, i) => `
       <div class="ach-badge tone-${b.tone}" style="--i:${i}">
         <span class="ach-medal"><svg viewBox="0 0 64 64">${emblem(b.emblem)}</svg></span>
         <span class="ach-name">${esc(b.name)}</span>
@@ -326,17 +322,17 @@
     const el = document.createElement("section");
     el.className = "slide";
     const body = `
-      <div class="contrib-bar">${slide.contributors.map(chip).join("")}</div>
+      <div class="contrib-bar">${(slide.contributors || []).map(chip).join("")}</div>
       <div class="ach-wrap">
         <div class="editor-body"><div class="gutter">${gutter}</div><div class="code">${code}</div></div>
         <div class="ach-grid">${badges}</div>
-        <div class="ach-foot">${slide.footer.map(esc).join("  ")}</div>
+        <div class="ach-foot">${(slide.footer || []).map(esc).join("  ")}</div>
       </div>`;
     el.innerHTML = `
       <div class="editor">
         <div class="titlebar">
           <span class="lights"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
-          <span class="crumb">code-carousel › <b>${esc(slide.file)}</b></span>
+          <span class="crumb">${esc(deckSlug)} › <b>${esc(slide.file)}</b></span>
         </div>
         <div class="tabbar"><span class="tab active"><span class="modi"></span><span class="go-file">${esc(slide.file)}</span></span>${sectionBadge(slide)}</div>
         ${body}
@@ -344,11 +340,9 @@
       ${stickerEl(slide)}`;
     return el;
   }
-
-  /* ---------- Render gallery (real team photos) ---------- */
   function renderGallery(slide) {
-    const cells = slide.photos.map((p, i) => `
-      <figure class="gphoto ${p.cls}" style="--i:${i}">
+    const cells = (slide.photos || []).map((p, i) => `
+      <figure class="gphoto ${p.cls || ""}" style="--i:${i}">
         <img src="${esc(p.src)}" loading="lazy" decoding="async" alt="${esc(p.cap)}">
         <figcaption><span class="tape"></span>${esc(p.cap)}</figcaption>
       </figure>`).join("");
@@ -357,18 +351,16 @@
         <p class="gallery-header">${esc(slide.header)}</p>
         <p class="gallery-intro">${esc(slide.intro)}</p>
         <div class="gallery-grid">${cells}</div>
-        <p class="gallery-foot">${slide.footer.map(esc).join("&nbsp;&nbsp;")}</p>
+        <p class="gallery-foot">${(slide.footer || []).map(esc).join("&nbsp;&nbsp;")}</p>
       </div>`;
     const el = document.createElement("section");
     el.className = "slide";
     el.innerHTML = editorChrome(slide, body, { cls: "gallery-card" });
     return el;
   }
-
-  /* ---------- Render the finale ---------- */
   function renderFinale(slide) {
-    const code = slide.code.map(highlight).map((l) => `<span class="ln">${l || "&nbsp;"}</span>`).join("");
-    const gutter = slide.code.map((_, i) => `<span>${i + 1}</span>`).join("");
+    const code = (slide.code || []).map(highlight).map((l) => `<span class="ln">${l || "&nbsp;"}</span>`).join("");
+    const gutter = (slide.code || []).map((_, i) => `<span>${i + 1}</span>`).join("");
     const waveRow = [..."01234"].map((_, i) => `<div class="wave-g" style="--w:${i}">${gopher(i === 2 ? "mascot" : "wave")}</div>`).join("");
     const el = document.createElement("section");
     el.className = "slide";
@@ -378,13 +370,13 @@
         <div class="editor">
           <div class="titlebar">
             <span class="lights"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></span>
-            <span class="crumb">code-carousel › <b>${esc(slide.file)}</b></span>
+            <span class="crumb">${esc(deckSlug)} › <b>${esc(slide.file)}</b></span>
           </div>
           <div class="tabbar"><span class="tab active"><span class="modi"></span><span class="go-file">${esc(slide.file)}</span></span></div>
           <div class="editor-body"><div class="gutter">${gutter}</div><div class="code">${code}</div></div>
         </div>
         <div class="term-window">
-          <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">zsh — code-carousel</span></div>
+          <div class="term-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-title">zsh — ${esc(deckSlug)}</span></div>
           <pre class="term-body" id="finale-term"></pre>
         </div>
         <div class="goodbye" id="finale-goodbye">${esc(slide.goodbye)} <span class="heart">❤</span><span class="signoff">${esc(slide.signoff || "")}</span></div>
@@ -392,25 +384,51 @@
       </div>`;
     return el;
   }
+  const RENDERERS = { cover: renderCover, code: renderSlide, social: renderSocial, origin: renderOrigin, gallery: renderGallery, achievements: renderAchievements, finale: renderFinale };
 
-  /* ---------- Photo gophers (polaroid-framed prints) ---------- */
+  /* ---------- Photo gophers (hovering prints, all families) ---------- */
   const PHOTO_SLOTS = ["tl", "tr", "bl", "ml", "mr"];
   function photoStickers(slide) {
     if (!slide.images || !slide.images.length) return "";
     const figs = slide.images.map((img, i) => {
       const slot = PHOTO_SLOTS[i % PHOTO_SLOTS.length];
-      return `<figure class="photo-sticker ps-${slot}" style="--i:${i}"><img src="${esc(img.src)}" loading="lazy" decoding="async" alt="Gopher: ${esc(img.caption)}"></figure>`;
+      return `<figure class="photo-sticker ps-${slot}" style="--i:${i}"><img src="${esc(img.src)}" loading="lazy" decoding="async" alt="${esc(img.caption || "")}"></figure>`;
     }).join("");
     return `<div class="photo-stickers" aria-hidden="true">${figs}</div>`;
   }
 
+  /* ---------- Role normalization + CC helper namespace ---------- */
+  const LEGACY2ROLE = { cover: "cover", code: "statement", social: "list", origin: "story", gallery: "gallery", achievements: "list", finale: "finale" };
+  const ROLE2TYPE   = { cover: "cover", statement: "code", story: "origin", list: "social", gallery: "gallery", quote: "code", finale: "finale" };
+  function normRole(slide) {
+    return slide.role || LEGACY2ROLE[slide.type] || "statement";
+  }
+  const CC = { esc, highlight, gopher, chip, codeBlock, contributorBar, sectionBadge, photoStickers, deckSlug };
+
+  /* ---------- Build one slide (dispatch by family) ---------- */
+  function buildOne(slide) {
+    if (familyId === "code-ide") {
+      const type = slide.type || ROLE2TYPE[normRole(slide)] || "code";
+      const r = RENDERERS[type] || renderSlide;
+      const el = r(slide);
+      el.insertAdjacentHTML("afterbegin", photoStickers(slide));
+      return el;
+    }
+    const role = normRole(slide);
+    const generic = (typeof GENERIC !== "undefined") ? GENERIC : {};
+    let html = null;
+    if (fam && typeof fam.render === "function") html = fam.render(role, slide, CC);
+    if (html == null) html = (generic[role] || generic.statement)(slide, CC);
+    const sec = document.createElement("section");
+    sec.className = "slide";
+    if (role === "finale") sec.dataset.finale = "1";
+    sec.innerHTML = html;
+    sec.insertAdjacentHTML("afterbegin", photoStickers(slide));
+    return sec;
+  }
+
   /* ---------- Build all slides ---------- */
-  const RENDERERS = { cover: renderCover, social: renderSocial, origin: renderOrigin, gallery: renderGallery, achievements: renderAchievements, finale: renderFinale };
-  SLIDES.forEach((slide) => {
-    const el = (RENDERERS[slide.type] || renderSlide)(slide);
-    el.insertAdjacentHTML("afterbegin", photoStickers(slide));
-    track.appendChild(el);
-  });
+  SLIDES.forEach((slide) => track.appendChild(buildOne(slide)));
   const slideEls = [...track.children];
 
   /* ---------- Dots ---------- */
@@ -424,25 +442,23 @@
 
   /* ---------- Navigation ---------- */
   let current = 0, busy = false;
-
   function paint() {
     track.style.transform = `translateX(-${current * 100}%)`;
     slideEls.forEach((el, i) => el.classList.toggle("active", i === current));
     [...dotsWrap.children].forEach((d, i) => d.classList.toggle("active", i === current));
     const s = SLIDES[current];
-    sbFile.textContent = s.file;
-    sbCount.textContent = `${current + 1} / ${SLIDES.length}`;
-    if (s.commit) sbCommit.textContent = `${s.commit.branch || "main"} · ${s.commit.hash}`;
-    sbPos.textContent = `Ln ${current + 1}, Col 1`;
+    if (sbFile)  sbFile.textContent = s.file || s.label || s.title || "";
+    if (sbCount) sbCount.textContent = `${current + 1} / ${SLIDES.length}`;
+    if (sbCommit && s.commit) sbCommit.textContent = `${s.commit.branch || "main"} · ${s.commit.hash}`;
+    if (sbPos)   sbPos.textContent = `Ln ${current + 1}, Col 1`;
   }
-
   function go(target) {
     if (busy) return;
     target = Math.max(0, Math.min(SLIDES.length - 1, target));
     if (target === current) return;
     const forward = target > current;
     const slide = SLIDES[target];
-    if (forward && slide.commit && !prefersReduced) {
+    if (forward && familyId === "code-ide" && slide.commit && !prefersReduced) {
       busy = true;
       playCommit(slide.commit, () => { current = target; paint(); afterArrive(); busy = false; });
     } else {
@@ -451,31 +467,29 @@
   }
   const next = () => go(current + 1);
   const prev = () => go(current - 1);
-
   function afterArrive() {
     floaters.innerHTML = "";
-    if (SLIDES[current].type === "finale") runFinale();
+    const s = SLIDES[current];
+    if (familyId === "code-ide" && (s.type === "finale" || normRole(s) === "finale")) runFinale();
   }
 
-  /* ---------- Commit (git history) transition ---------- */
+  /* ---------- Commit (git history) transition — code-ide only ---------- */
   let skipCommit = null;
   function playCommit(commit, done) {
     overlay.classList.remove("hidden");
     const branch = commit.branch || "main";
-    const head = `<span class="dim">~/code-carousel</span> <span class="prompt">(${branch})</span>\n<span class="prompt">$ </span>`;
+    const head = `<span class="dim">~/${esc(deckSlug)}</span> <span class="prompt">(${esc(branch)})</span>\n<span class="prompt">$ </span>`;
     let typed = "", i = 0, finished = false;
     const cmd = commit.cmd;
-
     const finish = () => {
       if (finished) return;
       finished = true;
       clearInterval(timer);
-      const outHtml = commit.out.map((l) => `<span class="ok">${esc(l)}</span>`).join("\n");
+      const outHtml = (commit.out || []).map((l) => `<span class="ok">${esc(l)}</span>`).join("\n");
       overBody.innerHTML = `${head}${esc(cmd)}\n\n${outHtml}`;
       setTimeout(() => { overlay.classList.add("hidden"); skipCommit = null; done(); }, prefersReduced ? 0 : 650);
     };
     skipCommit = finish;
-
     overBody.innerHTML = `${head}<span class="cursor"></span>`;
     const timer = setInterval(() => {
       if (i >= cmd.length) { clearInterval(timer); setTimeout(finish, 280); return; }
@@ -484,23 +498,23 @@
     }, 24);
   }
 
-  /* ---------- Finale terminal animation ---------- */
+  /* ---------- Finale terminal animation (code-ide) ---------- */
   function runFinale() {
     const slide = SLIDES[current];
     const termEl = document.getElementById("finale-term");
     const goodbyeEl = document.getElementById("finale-goodbye");
-    if (!termEl) return;
+    if (!termEl || !slide.run) return;
     termEl.innerHTML = "";
-    goodbyeEl.classList.remove("show");
-
+    if (goodbyeEl) goodbyeEl.classList.remove("show");
     if (prefersReduced) {
       termEl.innerHTML = slide.run.map(renderRunLine).join("\n");
-      goodbyeEl.classList.add("show"); spawnGophers(); return;
+      if (goodbyeEl) goodbyeEl.classList.add("show");
+      spawnGophers(); return;
     }
     let idx = 0;
     const lines = slide.run;
     function step() {
-      if (idx >= lines.length) { goodbyeEl.classList.add("show"); spawnGophers(); return; }
+      if (idx >= lines.length) { if (goodbyeEl) goodbyeEl.classList.add("show"); spawnGophers(); return; }
       const ln = lines[idx++];
       termEl.innerHTML = lines.slice(0, idx).map(renderRunLine).join("\n");
       termEl.scrollTop = termEl.scrollHeight;
@@ -515,8 +529,6 @@
     const body = ln.t ? `<span class="${ln.cls === "prompt" ? "cmd" : cls}">${esc(ln.c)}</span>` : `<span class="${cls}">${esc(ln.c)}</span>`;
     return prefix + body;
   }
-
-  /* ---------- Floating gophers on finale ---------- */
   function spawnGophers() {
     if (prefersReduced) return;
     floaters.innerHTML = "";
@@ -538,7 +550,7 @@
 
   /* ---------- Input ---------- */
   document.addEventListener("keydown", (e) => {
-    if (!overlay.classList.contains("hidden")) {
+    if (overlay && !overlay.classList.contains("hidden")) {
       if (["ArrowRight", "Enter", " ", "Escape"].includes(e.key) && skipCommit) { e.preventDefault(); skipCommit(); }
       return;
     }
@@ -551,7 +563,7 @@
     }
   });
   stage.addEventListener("click", (e) => {
-    if (!overlay.classList.contains("hidden")) { if (skipCommit) skipCommit(); return; }
+    if (overlay && !overlay.classList.contains("hidden")) { if (skipCommit) skipCommit(); return; }
     const x = e.clientX / window.innerWidth;
     if (x > 0.66) next(); else if (x < 0.2) prev();
   });
@@ -568,5 +580,6 @@
 
   /* ---------- Init ---------- */
   paint();
+  afterArrive();
   stage.focus();
 })();

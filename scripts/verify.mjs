@@ -4,12 +4,13 @@
    Usage:  node verify.mjs <path/to/slides.js>
 
    Checks:
-     • slides.js + app.js pass `node --check`
-     • every image referenced by a slide (images[].src / photos[].src)
-       exists on disk
-     • no referenced image is used more than once (stickers)
-     • no image file under assets/ is left unused (warning)
-   Prints a slide x image table. Exit code 1 on any hard failure.
+     • slides.js, app.js, themes.js, families.js pass `node --check`
+     • STYLE.family is valid (code-ide or a FAMILIES id)
+     • STYLE.theme (if set) resolves in THEMES
+     • every slide's ROLE has a renderer (family override or GENERIC)
+     • every referenced image (images[].src / photos[].src) exists
+     • no sticker image is used more than once; warns on unused assets
+   Prints a slide x role/image table. Exit 1 on any hard failure.
    ============================================================ */
 
 import fs from "node:fs";
@@ -29,56 +30,75 @@ const warn = (m) => console.warn("  ! " + m);
 const ok   = (m) => console.log("  ✓ " + m);
 
 /* ---- 1. node --check on the deck's JS ---- */
-for (const f of ["slides.js", "app.js"]) {
+for (const f of ["slides.js", "app.js", "themes.js", "families.js"]) {
   const p = path.join(deckDir, f);
-  if (!fs.existsSync(p)) { if (f === "slides.js") fail(`${f} not found`); continue; }
+  if (!fs.existsSync(p)) { if (f === "slides.js") fail(`${f} not found`); else warn(`${f} not found (engine file)`); continue; }
   try { execFileSync("node", ["--check", p]); ok(`node --check ${f}`); }
   catch { fail(`syntax error in ${f}`); }
 }
 
-/* ---- 2. load SLIDES from slides.js ---- */
-let SLIDES;
+/* ---- 2. load THEMES / FAMILIES / GENERIC / STYLE / SLIDES ---- */
+let THEMES = {}, FAMILIES = {}, GENERIC = {}, STYLE = null, SLIDES;
 try {
-  const src = fs.readFileSync(path.resolve(slidesPath), "utf8");
-  // slides.js declares `const SLIDES` (+ optional SLIDE_IMAGES post-process).
-  (0, eval)(src + "\nglobalThis.__SLIDES = SLIDES;");
-  SLIDES = globalThis.__SLIDES;
+  const read = (f) => { const p = path.join(deckDir, f); return fs.existsSync(p) ? fs.readFileSync(p, "utf8") : ""; };
+  const src = read("themes.js") + "\n" + read("families.js") + "\n" + fs.readFileSync(path.resolve(slidesPath), "utf8") +
+    "\nglobalThis.__cc = {" +
+    " THEMES: (typeof THEMES!=='undefined'?THEMES:{})," +
+    " FAMILIES: (typeof FAMILIES!=='undefined'?FAMILIES:{})," +
+    " GENERIC: (typeof GENERIC!=='undefined'?GENERIC:{})," +
+    " STYLE: (typeof STYLE!=='undefined'?STYLE:null)," +
+    " SLIDES: (typeof SLIDES!=='undefined'?SLIDES:undefined) };";
+  (0, eval)(src);
+  ({ THEMES, FAMILIES, GENERIC, STYLE, SLIDES } = globalThis.__cc);
 } catch (e) {
-  fail("could not evaluate slides.js: " + e.message);
+  fail("could not evaluate deck data: " + e.message);
 }
 if (!Array.isArray(SLIDES)) { fail("SLIDES is not an array"); printResult(); }
 
-/* ---- 3. collect referenced images + map them ---- */
-const used = new Map(); // src -> count
+/* ---- 3. style + theme validation ---- */
+const style = STYLE || {};
+const familyId = style.family || "code-ide";
+const knownFamily = familyId === "code-ide" || !!FAMILIES[familyId];
+if (knownFamily) ok(`family "${familyId}" is valid`);
+else fail(`unknown family "${familyId}" (expected code-ide or ${Object.keys(FAMILIES).join(", ")})`);
+if (style.theme) {
+  if (THEMES[style.theme]) ok(`theme "${style.theme}" resolves`);
+  else fail(`unknown theme "${style.theme}" (have: ${Object.keys(THEMES).join(", ")})`);
+}
+
+/* ---- 4. role coverage ---- */
+const LEGACY2ROLE = { cover: "cover", code: "statement", social: "list", origin: "story", gallery: "gallery", achievements: "list", finale: "finale" };
+const KNOWN_ROLES = new Set(["cover", "statement", "list", "story", "gallery", "quote", "finale"]);
+const fam = FAMILIES[familyId];
+const used = new Map();
 const addRef = (src) => used.set(src, (used.get(src) || 0) + 1);
 
-console.log(`\nslides: ${SLIDES.length}\n`);
+console.log(`\nslides: ${SLIDES.length}  ·  family: ${familyId}\n`);
 SLIDES.forEach((s, i) => {
-  const stickers = (s.images || []).map((im) => im.src);
-  const photos   = (s.photos || []).map((p) => p.src);
-  [...stickers, ...photos].forEach(addRef);
-  const label = (s.type || "code").padEnd(12);
-  const refs  = [...stickers, ...photos].map((p) => path.basename(p));
-  console.log(`  ${String(i).padStart(2)} ${label} ${s.file || ""}`);
+  const role = s.role || LEGACY2ROLE[s.type] || "statement";
+  const renderable = familyId === "code-ide" || (fam && typeof fam.render === "function") || !!GENERIC[role];
+  if (!KNOWN_ROLES.has(role)) warn(`slide ${i}: unusual role "${role}"`);
+  if (!renderable) fail(`slide ${i}: no renderer for role "${role}" in family "${familyId}"`);
+  (s.images || []).forEach((im) => addRef(im.src));
+  (s.photos || []).forEach((p) => addRef(p.src));
+  const refs = [...(s.images || []).map((im) => im.src), ...(s.photos || []).map((p) => p.src)].map((p) => path.basename(p));
+  console.log(`  ${String(i).padStart(2)} ${role.padEnd(10)} ${s.file || s.label || s.title || ""}`);
   if (refs.length) console.log(`       ${refs.join(", ")}`);
 });
 
-/* ---- 4. existence + duplicate checks ---- */
+/* ---- 5. image existence + duplicates ---- */
 console.log("\nimage checks:");
 let missing = 0, dupes = 0;
 for (const [src, count] of used) {
   if (!fs.existsSync(path.join(deckDir, src))) { fail(`missing: ${src}`); missing++; }
   if (count > 1) { warn(`used ${count}x: ${src}`); dupes++; }
 }
-if (!missing) ok("all referenced images exist");
-if (!dupes)   ok("no sticker reused");
+if (!used.size) ok("no images referenced");
+else { if (!missing) ok("all referenced images exist"); if (!dupes) ok("no sticker reused"); }
 
-/* ---- 5. unused files under assets/ (warning only) ---- */
-const assetDirs = ["assets/gophers", "assets/photos"]
-  .map((d) => path.join(deckDir, d))
-  .filter((d) => fs.existsSync(d));
-const onDisk = assetDirs.flatMap((d) =>
-  fs.readdirSync(d).filter((f) => /\.(png|jpe?g|webp|gif|svg)$/i.test(f)));
+/* ---- 6. unused files under assets/ (warning only) ---- */
+const assetDirs = ["assets/gophers", "assets/photos"].map((d) => path.join(deckDir, d)).filter((d) => fs.existsSync(d));
+const onDisk = assetDirs.flatMap((d) => fs.readdirSync(d).filter((f) => /\.(png|jpe?g|webp|gif|svg)$/i.test(f)));
 const usedNames = new Set([...used.keys()].map((p) => path.basename(p)));
 const unused = onDisk.filter((f) => !usedNames.has(f));
 if (onDisk.length) {

@@ -1,90 +1,138 @@
 # code-carousel — Reference
 
-Full input/output contract and customization notes. The concrete data shape lives
-in `templates/slides.example.js` (the canonical example). This file explains the
-rules around it.
+Full input/output contract and customization. The concrete data shape lives in
+`templates/slides.example.js` (canonical example). Runnable decks in `examples/`.
 
 ---
 
 ## 1. Inputs
 
 ### 1a. Content file (REQUIRED)
-Plain text / markdown describing the deck, one block per slide. Each block may provide:
+Plain text / markdown, one block per slide. Each block may provide a heading/human line,
+supporting lines, a list of key→value items, story beats, a quote, an author, a section label.
+Missing fields: infer sensibly. **Never invent people's names, quotes, or facts.**
 
-| Field | Maps to slide field | Notes |
-|---|---|---|
-| section / category | `section {emoji,label}` | becomes the `package X` badge |
-| file name | `file` | card title, e.g. `prompting.go` |
-| package + pre-filler code | `top[]` | code shown above the message |
-| main content (the human message) | `lead[]` + `msg[]` | rendered as a glowing `//` comment |
-| post-filler code | `bottom[]` | code shown below the message |
-| sticker idea | `sticker.cap` / `mood` | mascot pose + caption |
-| footer comment | `footer[]` | end with a `// status:` line |
-| author | `author` | one `// author:` line (avoid duplicating elsewhere) |
-
-Missing fields: infer sensibly from context. **Never invent people's names, quotes, or facts.**
-
-### 1b. Theme params (OPTIONAL, with defaults)
-`subject` (who the deck is about) · `author` + `contributors[]` · `accent` (default Go cyan
-`#00ADD8`, the `--go-cyan` CSS token) · language/editor theme (default **Go + VS Code Dark+**).
+### 1b. Style (OPTIONAL — inferred, then confirmed)
+The deck's look is chosen by inference + user confirmation, then stored in `STYLE` (see §2).
+Provide any of: a family, a theme, a natural-language `brief`, explicit `tokens`.
 
 ### 1c. Images folder (OPTIONAL)
-Classify by file NAME, two kinds:
-- **Mascot/sticker images** → `SLIDE_IMAGES`, scattered around card borders. Choose per slide by
-  the EMOTION implied in the filename (e.g. `*_facepalm` → roast, `*_coffee*` → social). Distribute
-  **all** images **evenly** (~2-3/slide) and use each **exactly once**.
-- **Real photos** → a dedicated `gallery` slide with funny caption overlays.
-Convert unsupported formats (HEIC→JPG via `sips -s format jpeg in.HEIC --out out.jpg`). Copy into
-`assets/gophers/` (stickers) or `assets/photos/` (gallery). Black-background stickers use
-`mix-blend-mode: lighten` in the engine, so they float on the dark stage without processing.
+Classify by file NAME:
+- **Mascot/sticker images** → `SLIDE_IMAGES`, scattered around card borders. Pick per slide by
+  the EMOTION in the filename; distribute **evenly** (~2-3/slide), each used **once**.
+- **Real photos** → a `gallery` role with caption overlays.
+Convert HEIC: `sips -s format jpeg in.HEIC --out out.jpg`. Copy into `assets/gophers/` (stickers)
+or `assets/photos/` (photos). Stickers use `mix-blend-mode: lighten` so black backgrounds vanish.
 
 ### 1d. Diff spec (OPTIONAL)
-An "additional content" file describing edits to an existing deck (new sections, mascot lines,
-contributor chips, finale redesign, a new slide). Applying a diff MUST preserve unrelated content
-and keep `SLIDE_IMAGES` index-aligned when slides are inserted (insert a matching `[]` or array).
+Edits to an existing deck (new slides, restyle, mascot lines). Preserve unrelated content; keep
+`SLIDE_IMAGES` index-aligned when inserting slides.
 
 ---
 
-## 2. Required output style
+## 2. STYLE — choosing the look
 
+`slides.js` may declare a `STYLE` global (omit → `code-ide` + `vscode-dark`, full back-compat):
+
+```js
+const STYLE = {
+  family: "editorial",   // code-ide | terminal | editorial | scrapbook | keynote | chat
+  theme: "ink",          // any id in themes.js; omit -> the family's default theme
+  brief: "warm, gold",   // OPTIONAL natural-language vibe -> theme + accent/texture
+  tokens: { accent: "#b3402e" }, // OPTIONAL explicit overrides (win over everything)
+  deck: "ada-farewell",  // short slug shown in code-ide chrome / terminal title
+};
+```
+
+Resolution order (later wins): **family default theme → `theme` → `brief` deltas → `tokens`**.
+
+### Families (`families.js`) — layout + metaphor
+`code-ide` (editor cards, gopher, git transitions, the default) · `terminal` (CRT shell) ·
+`editorial` (magazine) · `scrapbook` (polaroid/paper) · `keynote` (minimal big-type) ·
+`chat` (messenger thread). Each maps every ROLE to its own renderer; roles a family doesn't
+specialize fall back to a neutral renderer skinned by that family's CSS.
+
+### Themes (`themes.js`) — token presets
+`vscode-dark`, `paper-ide`, `crt-green`, `crt-amber`, `ink`, `paper`, `midnight`, `daylight`,
+`messenger`, `synthwave`. A theme is pure data: `bg bg2 surface line text muted accent accent2
+fontDisplay fontBody fontMono radius shadow texture` (`texture`: none|grain|scanlines|paper|glow).
+
+### Custom style input (both accepted)
+- **`brief`** (natural language) → `briefToTokens` in `themes.js` maps keywords to a theme id
+  + accent/texture deltas (e.g. "synthwave neon pink" → `synthwave` + pink accent + glow).
+- **`tokens`** (explicit) → merged last, overriding everything (e.g. `{ accent, fontDisplay }`).
+
+---
+
+## 3. Inference mapping (infer → recommend → confirm)
+
+From the content, infer signals and map to a recommended family + theme. Always present the
+recommendation + 2 alternatives + a "describe your own" option, and wait for the user.
+
+| Content signal | Recommend | Alternatives |
+|---|---|---|
+| technical / engineering / dev in-jokes, code snippets | `code-ide` / `vscode-dark` | `terminal`, `keynote` |
+| hacker, ops, retro, roast | `terminal` / `crt-green` | `chat`, `code-ide` |
+| heartfelt, personal, photo-heavy, nostalgic | `scrapbook` / `paper` | `editorial`, `keynote` |
+| elegant tribute, long-form story, quotes | `editorial` / `ink` | `keynote`, `scrapbook` |
+| product, launch, talk, "clean/minimal" | `keynote` / `midnight` or `daylight` | `editorial`, `code-ide` |
+| playful banter, group send-off | `chat` / `messenger` | `terminal`, `scrapbook` |
+
+---
+
+## 4. Slide roles + field map
+
+`role`: `cover | statement | list | story | gallery | quote | finale` (every family renders each).
+
+| role | fields |
+|---|---|
+| cover | `title`, `ext?`, `eyebrow`/`kicker`, `subtitle`/`sub`, `author`, `contributors[]` |
+| statement | `heading` (the human line), `body[]`, `footer[]`, `section{emoji,label}` |
+| list | `heading`, `intro`, `items:[{k,v}]`, `closing` |
+| story | `heading`, `intro`, `beats:[ "..." ]` |
+| gallery | `heading`, `intro`, `photos:[{src,cap,cls:"wide"|""}]` |
+| quote | `text`, `attribution` |
+| finale | `goodbye`, `lines[]` (or `run[]` for code-ide terminal), `signoff` |
+
+Shared: `file`/`label`, `author`, `contributors[]`, `section`. **code-ide extras** (ignored by
+other families): `top/lead/msg/bottom`, `code`, `run`, `memories`, `beats`/`struct`, `badges`,
+`mood`/`sticker`, `commit{hash,cmd,out[],branch}` (git transition into the slide).
+
+**Legacy compatibility:** `type: cover|code|social|origin|gallery|achievements|finale` with no
+`STYLE` renders via `code-ide` exactly as before.
+
+---
+
+## 5. Required output style
 **File layout** (no build step; runs from `file://`):
 ```
 <deck>/
-  index.html      styles.css
-  slides.js       (DATA: SLIDES + optional SLIDE_IMAGES — the ONLY per-deck file)
-  app.js          (ENGINE — copied from templates, rarely edited)
-  assets/gophers/ assets/photos/
+  index.html  styles.css  families.css
+  themes.js   families.js  app.js        (ENGINE — copied from templates, not edited)
+  slides.js   (DATA: STYLE + SLIDES + optional SLIDE_IMAGES — the ONLY per-deck file)
+  assets/gophers/  assets/photos/
 ```
-- Plain `<script>` globals, **NOT** ES modules (file:// compatibility).
-- Each file **< 800 lines**; split if a file approaches the limit.
-- Aesthetic: VS Code Dark+ editor cards (traffic lights, tab = filename, line-number gutter);
-  hand-written syntax highlighter (no CDN); mascot SVG + framed/blended photo stickers;
-  git-commit-message transitions between sections; terminal-output finale; contributor chips;
-  section/package badges.
-- Behavior: keyboard (←/→/space/Home/End/F), click zones, swipe, progress dots, status bar,
-  line-by-line entry animation, `prefers-reduced-motion` fallback, responsive (375/768/1024/1440).
+- Plain `<script>` globals, **NOT** ES modules. Each file **< 800 lines**.
+- Keyboard (←/→/space/Home/End/F), click zones, swipe, dots, `prefers-reduced-motion`, responsive.
 
 **Self-verification before declaring done:**
 1. `node --check` every JS file.
-2. `node scripts/verify.mjs <deck>/slides.js` — asserts each referenced image exists, mapped
-   exactly once, none unused/missing; prints the slide×image table.
-3. Open `index.html`. If a browser MCP/extension is available, screenshot 2-3 slides; otherwise
-   **explicitly state it was not visually verified** and list what the user should eyeball.
+2. `node scripts/verify.mjs <deck>/slides.js` — asserts JS parses, `STYLE.family`/`theme` valid,
+   every role has a renderer, every referenced image exists once. Prints the slide×role table.
+3. Open `index.html`; screenshot 2-3 slides if a browser MCP exists, else say it's unverified.
 
 **Scope boundaries (do NOT):** add a framework/bundler/npm dep; invent names/quotes/facts;
-publish/share/push; exceed 800 lines/file.
+break `code-ide`/`vscode-dark` back-compat; publish/share/push; exceed 800 lines/file.
 
 ---
 
-## 3. Customization
-
-- **Accent color:** change `--go-cyan` in `styles.css` `:root` (also `--go-cyan-2`).
-- **Theme:** Go + VS Code Dark+ is the default. Other languages work via the highlighter's
-  keyword sets in `app.js` (`KEYWORDS`, `CONTROL`); the gopher mascot is the Go default — swap the
-  `gopher()` SVG factory for a different mascot if theming away from Go.
-- **Add a slide type:** write a `renderX(slide)` function in `app.js` returning a `<section
-  class="slide">`, then register it in the `RENDERERS` map. Add matching CSS in `styles.css`.
-- **Slide types shipped:** `cover`, code (default), `social` (warm), `origin` (polaroid),
-  `gallery` (photos), `achievements` (badge grid), `finale` (terminal).
-- **Gopher moods:** `teacher detective prompt rocket confused award debuggod confetti coffee
-  locked photo mascot wave` (see `gopherProp()` in `app.js`).
+## 6. Customization
+- **New theme:** add an entry to `THEMES` in `themes.js` (a token object). Done — selectable via
+  `STYLE.theme`.
+- **New accent/vibe word:** add a rule to `VIBE` / `VIBE_TOKENS` in `themes.js`.
+- **New family:** add an entry to `FAMILIES` in `families.js` with `{ label, theme, render(role,
+  slide, CC) }` returning HTML per role (return `null` to fall back to `GENERIC`). Add matching
+  CSS under `.fam-<id>` in `families.css`. Register a default theme.
+- **New role:** add `GENERIC.<role>` in `families.js` and (optionally) per-family overrides.
+- **code-ide internals:** the original editor-card renderers + Go highlighter + gopher SVG live
+  in `app.js` and are registered as the `code-ide` family; leave them intact for back-compat.
