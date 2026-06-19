@@ -184,6 +184,19 @@ body[data-texture="grain"] #app {
 .slide.active .ch-row { animation: chIn .4s var(--ease, ease) backwards; }
 @keyframes chIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+/* ============================================================
+   DIAGRAM role (works in every family, incl. code-ide)
+   ============================================================ */
+.gx-diagram { width: min(1040px, 100%); text-align: center; }
+.gx-diagram-canvas { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; margin: 8px auto 14px; display: flex; align-items: center; justify-content: center; overflow: auto; box-shadow: var(--shadow); }
+.gx-diagram-canvas svg, .gx-diagram-canvas img { max-width: 100%; height: auto; max-height: 62vh; }
+.gx-diagram-empty { color: var(--muted); font-family: var(--font-mono); padding: 56px; }
+.gx-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; font-family: var(--font-mono); font-size: 13px; color: var(--muted); margin-top: 4px; }
+.mermaid { font-family: var(--font-mono); color: var(--text); white-space: pre; text-align: left; }
+/* code-ide diagram sits inside the editor card */
+.fam-code-ide .diagram-body { padding: 16px 20px 22px; }
+.fam-code-ide .gx-diagram-canvas { background: #0d1117; }
+
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   .slide.active .gx-items li, .slide.active .gx-beats li, .slide.active .gx-photo,

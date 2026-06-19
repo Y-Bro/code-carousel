@@ -35,8 +35,10 @@ Themes (token presets) live in `themes.js` (e.g. `vscode-dark`, `crt-green`, `in
 `midnight`, `daylight`, `synthwave`). Each family has a sensible default theme.
 
 ## Slide roles (metaphor-agnostic)
-`cover` · `statement` · `list` · `story` · `gallery` · `quote` · `finale`.
-Every family renders every role. Full schema: `templates/slides.example.js`.
+`cover` · `statement` · `list` · `story` · `gallery` · `quote` · `diagram` · `finale`.
+Every family renders every role. The `diagram` role shows architecture/flow diagrams via
+inline `svg`, an image `src` (exported PNG/SVG), or `mermaid` text (rendered if mermaid.js is
+vendored, else shown as source). Full schema: `templates/slides.example.js`.
 Legacy decks using `type: cover|code|social|origin|gallery|achievements|finale` with no
 `STYLE` still work — they default to `code-ide` and render identically.
 

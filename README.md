@@ -29,15 +29,26 @@ style from your content and confirms with you** before building.
 
 ## Install
 
+**npx (no clone):**
+
+```bash
+npx github:Y-Bro/code-carousel install     # -> ~/.claude/skills/code-carousel
+npx github:Y-Bro/code-carousel new my-deck # scaffold a runnable deck, no Claude needed
+```
+
+**or git clone:**
+
 ```bash
 git clone https://github.com/Y-Bro/code-carousel.git ~/.claude/skills/code-carousel
 ```
 
-Claude Code auto-discovers it. Then just ask:
+Claude Code auto-discovers the skill. Then just ask:
 
 > "Make a code-carousel farewell deck for Sam from notes.txt."
 
 Claude reads the notes, recommends a style (with alternatives), and builds the deck.
+
+> Once published to npm, `npx code-carousel install` works without the `github:` prefix.
 
 ## Usage
 
@@ -54,8 +65,12 @@ open index.html                                        # xdg-open on Linux / sta
 Edit only `slides.js` — set `STYLE` (family + theme) and the `SLIDES` array. Verify with
 `node "$REPO/scripts/verify.mjs" slides.js` (you want `RESULT: PASS`).
 
-Runnable examples: [`examples/hello-world.slides.js`](examples/hello-world.slides.js) (code-ide)
-and [`examples/scrapbook-tribute.slides.js`](examples/scrapbook-tribute.slides.js) (a non-code look).
+**Architecture diagrams / pitches:** use the `keynote` family + a `diagram` slide (inline SVG,
+an exported image, or Mermaid). See [`examples/architecture-pitch.slides.js`](examples/architecture-pitch.slides.js).
+
+Runnable examples: [`hello-world`](examples/hello-world.slides.js) (code-ide),
+[`scrapbook-tribute`](examples/scrapbook-tribute.slides.js) (non-code), and
+[`architecture-pitch`](examples/architecture-pitch.slides.js) (keynote + diagram).
 
 ## Layout
 

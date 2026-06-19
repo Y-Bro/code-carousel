@@ -68,7 +68,7 @@ if (style.theme) {
 
 /* ---- 4. role coverage ---- */
 const LEGACY2ROLE = { cover: "cover", code: "statement", social: "list", origin: "story", gallery: "gallery", achievements: "list", finale: "finale" };
-const KNOWN_ROLES = new Set(["cover", "statement", "list", "story", "gallery", "quote", "finale"]);
+const KNOWN_ROLES = new Set(["cover", "statement", "list", "story", "gallery", "quote", "diagram", "finale"]);
 const fam = FAMILIES[familyId];
 const used = new Map();
 const addRef = (src) => used.set(src, (used.get(src) || 0) + 1);
@@ -81,6 +81,7 @@ SLIDES.forEach((s, i) => {
   if (!renderable) fail(`slide ${i}: no renderer for role "${role}" in family "${familyId}"`);
   (s.images || []).forEach((im) => addRef(im.src));
   (s.photos || []).forEach((p) => addRef(p.src));
+  if (s.src) addRef(s.src); // diagram role image source
   const refs = [...(s.images || []).map((im) => im.src), ...(s.photos || []).map((p) => p.src)].map((p) => path.basename(p));
   console.log(`  ${String(i).padStart(2)} ${role.padEnd(10)} ${s.file || s.label || s.title || ""}`);
   if (refs.length) console.log(`       ${refs.join(", ")}`);

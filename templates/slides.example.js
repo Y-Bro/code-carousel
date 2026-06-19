@@ -12,8 +12,10 @@
    deck   : short slug shown in code-ide chrome / terminal title
 
    ── SLIDES: each entry has a semantic ROLE ──────────────────
-   role : cover | statement | list | story | gallery | quote | finale
+   role : cover | statement | list | story | gallery | quote | diagram | finale
           (every family knows how to render each role)
+          diagram -> ONE of svg:"<svg…>" | src:"assets/photos/x.svg" | mermaid:"graph LR;…"
+                     + heading, caption, legend[]  (see examples/architecture-pitch.slides.js)
    Legacy decks with `type: cover|code|social|origin|gallery|
    achievements|finale` and no STYLE still work — they default to
    the code-ide family and render identically.

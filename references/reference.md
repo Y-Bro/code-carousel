@@ -92,7 +92,13 @@ recommendation + 2 alternatives + a "describe your own" option, and wait for the
 | story | `heading`, `intro`, `beats:[ "..." ]` |
 | gallery | `heading`, `intro`, `photos:[{src,cap,cls:"wide"|""}]` |
 | quote | `text`, `attribution` |
+| diagram | `heading`, `intro`, ONE of `svg` (inline SVG) / `src` (image file) / `mermaid` (text), `caption`, `legend[]` |
 | finale | `goodbye`, `lines[]` (or `run[]` for code-ide terminal), `signoff` |
+
+**Diagrams:** prefer inline `svg` (export from Excalidraw/Mermaid/draw.io → SVG; crisp, zero-dep)
+or an image `src`. `mermaid` text renders only if you vendor `mermaid.min.js` locally and add a
+`<script>` to `index.html` (engine calls `mermaid.run()` if `window.mermaid` exists); otherwise
+the mermaid source is shown. See `examples/architecture-pitch.slides.js`.
 
 Shared: `file`/`label`, `author`, `contributors[]`, `section`. **code-ide extras** (ignored by
 other families): `top/lead/msg/bottom`, `code`, `run`, `memories`, `beats`/`struct`, `badges`,

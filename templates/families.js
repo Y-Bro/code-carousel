@@ -92,6 +92,24 @@ const GENERIC = {
       ${s.attribution || s.author ? `<cite>— ${E(s.attribution || s.author)}</cite>` : ""}
     </div>`;
   },
+  diagram(s, CC) {
+    const E = CC.esc;
+    const canvas = s.svg
+      ? `<div class="gx-diagram-canvas">${s.svg}</div>` // raw inline SVG (author-trusted)
+      : s.src
+        ? `<div class="gx-diagram-canvas"><img src="${E(s.src)}" loading="lazy" decoding="async" alt="${E(s.caption || s.heading || "diagram")}"></div>`
+        : s.mermaid
+          ? `<pre class="mermaid gx-diagram-canvas">${E(s.mermaid)}</pre>` // rendered if mermaid.js present, else source
+          : `<div class="gx-diagram-canvas gx-diagram-empty">no diagram source (set svg, src, or mermaid)</div>`;
+    const legend = (s.legend || []).map((l) => `<li>${E(l)}</li>`).join("");
+    return `<div class="gx gx-diagram">
+      ${s.heading ? `<h2 class="gx-heading">${E(s.heading)}</h2>` : ""}
+      ${s.intro ? `<p class="gx-intro">${E(s.intro)}</p>` : ""}
+      ${canvas}
+      ${s.caption ? `<p class="gx-foot">${E(s.caption)}</p>` : ""}
+      ${legend ? `<ul class="gx-legend">${legend}</ul>` : ""}
+    </div>`;
+  },
   finale(s, CC) {
     const E = CC.esc;
     const lines = finaleLines(s).map((l) => `<p>${E(l)}</p>`).join("");

@@ -30,6 +30,15 @@ stickers get scattered; real photos become a `gallery` slide). Claude never inve
 
 ## Path B — by hand (5 minutes)
 
+Fastest — scaffold a deck with the CLI (no clone needed):
+
+```bash
+npx github:Y-Bro/code-carousel new my-deck
+cd my-deck && open index.html
+```
+
+Or copy the engine files manually:
+
 ```bash
 REPO=~/.claude/skills/code-carousel        # or your clone location
 mkdir my-deck && cd my-deck
@@ -89,7 +98,14 @@ Every family renders every role. Set `role` per slide (legacy `type` decks still
 | `story` | ordered beats | `heading`, `intro`, `beats[]` |
 | `gallery` | real photos | `heading`, `photos:[{src,cap,cls}]` |
 | `quote` | a big quote | `text`, `attribution` |
+| `diagram` | architecture/flow diagram | `heading`, ONE of `svg`/`src`/`mermaid`, `caption`, `legend[]` |
 | `finale` | the send-off | `goodbye`, `lines[]`, `signoff` |
+
+**Diagrams:** the `diagram` role takes inline `svg` (export from Excalidraw/Mermaid/draw.io →
+SVG — crisp, zero-dep), an image `src` (PNG/SVG), or `mermaid` text (rendered if you vendor
+`mermaid.min.js` and add a `<script>` to `index.html`; otherwise shown as source). Great for
+architecture/technical pitches — pair with `family: "keynote"`. See
+`examples/architecture-pitch.slides.js`.
 
 Full reference: [`templates/slides.example.js`](templates/slides.example.js) and
 [`references/reference.md`](references/reference.md).

@@ -1,0 +1,46 @@
+{
+  "name": "code-carousel",
+  "version": "0.2.0",
+  "description": "A themable, content-aware slide-carousel skill for Claude Code — each deck is a self-contained file:// page. Six style families (code-ide, terminal, editorial, scrapbook, keynote, chat), zero dependencies.",
+  "type": "module",
+  "bin": {
+    "code-carousel": "bin/cli.mjs"
+  },
+  "files": [
+    "bin",
+    "templates",
+    "references",
+    "scripts",
+    "examples",
+    "SKILL.md",
+    "README.md",
+    "USAGE.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "install-skill": "node bin/cli.mjs install",
+    "new": "node bin/cli.mjs new"
+  },
+  "keywords": [
+    "claude-code",
+    "claude-code-skill",
+    "slides",
+    "carousel",
+    "presentation",
+    "farewell",
+    "themable"
+  ],
+  "author": "Bharath Yerrumsetty",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Y-Bro/code-carousel.git"
+  },
+  "homepage": "https://github.com/Y-Bro/code-carousel#readme",
+  "bugs": {
+    "url": "https://github.com/Y-Bro/code-carousel/issues"
+  }
+}

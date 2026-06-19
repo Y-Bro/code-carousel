@@ -384,7 +384,27 @@
       </div>`;
     return el;
   }
-  const RENDERERS = { cover: renderCover, code: renderSlide, social: renderSocial, origin: renderOrigin, gallery: renderGallery, achievements: renderAchievements, finale: renderFinale };
+  function diagramCanvas(slide, E) {
+    if (slide.svg)     return `<div class="gx-diagram-canvas">${slide.svg}</div>`; // raw inline SVG (author-trusted)
+    if (slide.src)     return `<div class="gx-diagram-canvas"><img src="${E(slide.src)}" loading="lazy" decoding="async" alt="${E(slide.caption || slide.heading || "diagram")}"></div>`;
+    if (slide.mermaid) return `<pre class="mermaid gx-diagram-canvas">${E(slide.mermaid)}</pre>`; // rendered if mermaid.js is present, else shown as source
+    return `<div class="gx-diagram-canvas gx-diagram-empty">no diagram source (set svg, src, or mermaid)</div>`;
+  }
+  function renderDiagram(slide) {
+    const legend = (slide.legend || []).map((l) => `<li>${esc(l)}</li>`).join("");
+    const body = `
+      <div class="diagram-body">
+        ${slide.intro ? `<p class="gallery-intro">${esc(slide.intro)}</p>` : ""}
+        ${diagramCanvas(slide, esc)}
+        ${slide.caption ? `<p class="gallery-foot">${esc(slide.caption)}</p>` : ""}
+        ${legend ? `<ul class="gx-legend">${legend}</ul>` : ""}
+      </div>`;
+    const el = document.createElement("section");
+    el.className = "slide";
+    el.innerHTML = editorChrome(slide, body, { cls: "gallery-card" }) + stickerEl(slide);
+    return el;
+  }
+  const RENDERERS = { cover: renderCover, code: renderSlide, social: renderSocial, origin: renderOrigin, gallery: renderGallery, achievements: renderAchievements, diagram: renderDiagram, finale: renderFinale };
 
   /* ---------- Photo gophers (hovering prints, all families) ---------- */
   const PHOTO_SLOTS = ["tl", "tr", "bl", "ml", "mr"];
@@ -399,7 +419,7 @@
 
   /* ---------- Role normalization + CC helper namespace ---------- */
   const LEGACY2ROLE = { cover: "cover", code: "statement", social: "list", origin: "story", gallery: "gallery", achievements: "list", finale: "finale" };
-  const ROLE2TYPE   = { cover: "cover", statement: "code", story: "origin", list: "social", gallery: "gallery", quote: "code", finale: "finale" };
+  const ROLE2TYPE   = { cover: "cover", statement: "code", story: "origin", list: "social", gallery: "gallery", quote: "code", diagram: "diagram", finale: "finale" };
   function normRole(slide) {
     return slide.role || LEGACY2ROLE[slide.type] || "statement";
   }
@@ -576,6 +596,17 @@
   function toggleFullscreen() {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
     else document.exitFullscreen?.();
+  }
+
+  /* ---------- Optional Mermaid rendering (diagram role) ----------
+     If mermaid.js is loaded (vendor it next to the deck and add a
+     <script>), render any .mermaid blocks; otherwise they show as source. */
+  if (window.mermaid) {
+    try {
+      window.mermaid.initialize && window.mermaid.initialize({ startOnLoad: false });
+      if (window.mermaid.run) window.mermaid.run({ querySelector: ".mermaid" });
+      else if (window.mermaid.init) window.mermaid.init(undefined, ".mermaid");
+    } catch (e) { /* leave source visible */ }
   }
 
   /* ---------- Init ---------- */
